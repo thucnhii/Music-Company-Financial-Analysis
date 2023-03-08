@@ -1,0 +1,203 @@
+/*
+SCENARIO: Manager of WSDA Music Company has been unable to account
+for a discrepancy in his company's financials.
+The further analyze has helped him to figure out that the discrepancy
+occurred between the years 2011 and 2012. But the managers want to know who
+is exactly the problem.
+*/
+
+
+--1. The number of transactions took place between 2011 and 2012.
+SELECT
+	count(*)
+FROM
+	Invoice
+WHERE
+	InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+	
+--2. The amount of money that WSDA made during that period.
+	
+SELECT
+	sum(total) as [Total Sales between 2011 and 2012]
+FROM
+	Invoice
+WHERE
+	InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+
+--3. A list of customers who made purchases between 2011 and 2012 
+
+SELECT
+  Customer.FirstName,
+  Customer.LastName,
+  Invoice.Total
+FROM
+	Customer 
+INNER JOIN Invoice 
+ON Customer.CustomerId = Invoice.CustomerId
+WHERE
+	Invoice.InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+	ORDER BY
+	Invoice.total DESC
+  
+  	
+--4. A list of customers, sales representatives, and total transaction amounts for each
+-- customer between 2011 and 2012.
+SELECT 
+  Customer.FirstName as [Customer First Name],
+  Customer.LastName as [Customer Last Name],
+  Employee.FirstName as [Employee First Name],
+  Employee.LastName as [Employee Last Name],
+  Invoice.total
+FROM Customer
+INNER JOIN Employee
+ON Customer.SupportRepId = Employee.EmployeeId
+INNER JOIN Invoice
+ON Customer.CustomerId = Invoice.CustomerId
+WHERE 
+	InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+ORDER BY
+		Invoice.Total DESC
+		
+--5. The number of transactions that are above the average transaction amount
+--during the same time period.
+
+SELECT 
+	count(total) as [Number of Transaction Above Avg]
+FROM
+	Invoice
+WHERE 
+total >
+(SELECT
+avg(total) 
+FROM
+Invoice
+WHERE 
+	InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31')
+AND
+	InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+	
+--6. The average transaction amount for each year that WSDA Music has been in business
+	
+SELECT
+	round(avg(total),2) as [Avg Transaction Amount],
+	strftime('%Y', InvoiceDate) AS [Year]
+FROM
+  Invoice
+GROUP BY
+	strftime('%Y', InvoiceDate)
+	
+--7. A list of employees who exceeded the average transaction amount from sales
+--they generated during 2011 and 2012.
+
+SELECT 
+	Employee.FirstName,
+	Employee. LastName,
+	sum(total) as [Total Sales]
+
+FROM
+  Employee
+INNER JOIN Customer
+ON 
+  Employee.EmployeeId = Customer.SupportRepId
+INNER JOIN Invoice
+ON 
+  Customer.CustomerId = Invoice.CustomerId
+WHERE 
+	InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+AND
+total >
+(SELECT
+avg(total)
+FROM
+Invoice)
+GROUP BY
+  Employee.FirstName,
+  Employee.LastName
+
+--8. Create a Commission Payout that displays each employee's commission
+--based on 15% of the sales transaction amount.
+
+SELECT
+  Employee.FirstName,
+  Employee.LastName,
+  sum(invoice.total) as [Total Sales],
+  round(sum(invoice.total)*.15,2) as [Commission Payout]
+FROM
+  Employee
+INNER JOIN Customer
+ON
+  Employee.EmployeeId = Customer.SupportRepId
+INNER JOIN Invoice
+ON
+  Customer.CustomerId = Invoice.CustomerId
+WHERE 
+	InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+GROUP BY
+  Employee.FirstName,
+  Employee.LastName
+
+--9. Employee made the highest commission
+SELECT 
+  Employee.FirstName,
+  Employee.LastName
+FROM
+  Employee
+INNER JOIN Customer
+ON
+  Employee.EmployeeId = Customer.SupportRepId
+INNER JOIN Invoice
+ON
+  Customer.CustomerId = Invoice.CustomerId
+WHERE total = (SELECT max(total)
+FROM
+Invoice)
+
+--10. List the customers that Jane Peacock supported.
+SELECT 
+  Customer.FirstName as [Customer First Name],
+  Customer.LastName as [Customer Last Name],
+  Employee.FirstName as [Employee First Name],
+  Employee.LastName as [Employee Last Name],
+  sum(invoice.total) as [Total Sales],
+  round(sum(invoice.total)*.15,2) as [Commission Payout]
+
+FROM Customer
+INNER JOIN Employee
+ON 
+  Customer.SupportRepId = Employee.EmployeeId
+INNER JOIN Invoice
+ON 
+  Customer.CustomerId = Invoice.CustomerId
+WHERE 
+  InvoiceDate BETWEEN '2011-01-01' AND '2012-12-31'
+AND
+  Employee.LastName = 'Peacock'
+GROUP BY
+  Customer.FirstName,
+  Customer.LastName,
+  Employee.FirstName,
+  Employee.LastName
+
+--11. The customer made the highest purchase.
+SELECT *
+FROM
+  Customer
+INNER JOIN Invoice
+ON
+  customer.CustomerId = Invoice.CustomerId
+WHERE total =
+(SELECT max(total)
+FROM Invoice)
+
+--12. Take a look at this customer record to see if there is anything suspicous
+
+SELECT *
+FROM
+  Customer
+WHERE
+  Customer.LastName = 'Doeein'
+
+
+/*
+CONCLUSION: Jane Peacock is our primary of interest.
+*/
